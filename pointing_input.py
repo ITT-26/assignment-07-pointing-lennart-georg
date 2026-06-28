@@ -53,8 +53,8 @@ x_min, x_max = 0.2, 0.8
 y_min, y_max = 0.2, 0.8
 
 # values for click detection
-ANGLE_CLICK_THRESHOLD = 15
-ANGLE_RELEASE_THRESHOLD = 20
+ANGLE_CLICK_THRESHOLD = 20
+ANGLE_RELEASE_THRESHOLD = 25
 
 
 # calculates the distance between two spots -> used for the marks in mediapipe
