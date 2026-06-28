@@ -154,12 +154,12 @@ while True:
         # Click logic -> check angle between thumb and index finger -> if angle small -> click
 
         # thumb vector
-        thumb_x = hand[4].x - hand[2].x
-        thumb_y = hand[4].y - hand[2].y
+        thumb_x = hand[4].x - hand[1].x
+        thumb_y = hand[4].y - hand[1].y
 
         # index finger vector
-        index_x = hand[8].x - hand[5].x
-        index_y = hand[8].y - hand[5].y
+        index_x = hand[8].x - hand[1].x
+        index_y = hand[8].y - hand[1].y
 
         # angle between thumb and index finger
         angle = math.degrees(
