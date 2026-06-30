@@ -89,7 +89,7 @@ csv_path = os.path.join(DATA_DIR, filename)
 csv_file = open(csv_path, "a", newline="")
 csv_writer = csv.writer(csv_file)
 
-# make first row if the file is empty
+# make header if the file is empty
 if os.path.getsize(csv_path) == 0:
     csv_writer.writerow([
         "iteration", "pid", "num_targets", "target_w", "target_d", "target_id", "timestamp"
