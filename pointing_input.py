@@ -10,6 +10,7 @@ import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from pynput.mouse import Button, Controller
+from pynput import keyboard
 
 # for getting the screen size
 ctypes.windll.user32.SetProcessDPIAware()
@@ -18,6 +19,8 @@ ctypes.windll.user32.SetProcessDPIAware()
 VIDEO_ID = int(sys.argv[1]) if len(sys.argv) > 1 else 0
 # number of hands to detect -> 1 because we only have one mouse
 NUM_HANDS = 1
+
+DEBUG = True if len(sys.argv) > 2 and sys.argv[2] == "debug" else False
 MODEL_PATH = "./mediapipe_sample_code/hand_landmarker.task"
 
 OPTIONS = vision.HandLandmarkerOptions(
@@ -34,6 +37,21 @@ cap = cv2.VideoCapture(VIDEO_ID)
 
 # mouse controller
 mouse = Controller()
+
+# flag to exit the program
+exit_program = False
+
+
+# keyboard listener for exiting the program
+def on_press(key):
+    global exit_program
+    if key == keyboard.Key.esc:
+        exit_program = True
+
+
+# start listener
+listener = keyboard.Listener(on_press=on_press)
+listener.start()
 
 # screen dimensions
 user32 = ctypes.windll.user32
@@ -95,6 +113,8 @@ def is_l_shape(hand):
     return index_ok and middle_folded and ring_folded and pinky_folded
 
 
+started = False
+
 # loop
 while True:
 
@@ -109,6 +129,11 @@ while True:
 
     # Detect hand landmarks from the input image.
     detection_result = detector.detect_for_video(mp_frame, timestamp_ms)
+
+    # tell the user that mouse control has started -> only once
+    if not started:
+        print("MOUSE CONTROL STARTED")
+        started = True
 
     # is the hand in L-shape
     l_shaped = False
@@ -186,7 +211,6 @@ while True:
             mouse.release(Button.left)
             left_click = False
 
-
     # debug info on the frame
     angle_text = f"{angle:.2f}" if angle is not None else "N/A"
 
@@ -202,8 +226,13 @@ while True:
     )
 
     # show the frame with debug info
-    cv2.imshow("pointing input", frame)
-    if cv2.waitKey(1) & 0xFF == ord("q"):
+    if DEBUG:
+        cv2.imshow("pointing input", frame)
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord("q") or key == 27:
+            break
+
+    if exit_program:
         break
 
 # if the program is closed while the left mouse button is pressed -> release it
