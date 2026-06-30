@@ -7,16 +7,48 @@ from pyglet.window import key
 import csv
 import os
 import time
+import json
+
+
+# load config from file
+def load_config(path):
+    if not path:
+        return {}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except FileNotFoundError:
+        return {}
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid config JSON: {e}")
 
 
 # Arguments
 def parse_args():
+
+    # config parser
+    pre = argparse.ArgumentParser(add_help=False)
+    # default config file
+    pre.add_argument("--config", type=str, default="fitts_config.json")
+    known, _ = pre.parse_known_args()
+
+    # load config
+    cfg = load_config(known.config)
+
+    # get from config or default
+    def c(name, default):
+        return cfg[name] if name in cfg else default
+
+    # argument parser
     p = argparse.ArgumentParser()
-    p.add_argument("--pid", type=int, default=7)
-    p.add_argument("--num-targets", type=int, default=10)
-    p.add_argument("--distance", type=float, default=300.0)
-    p.add_argument("--target-radius", type=float, default=25.0)
-    p.add_argument("--trials", type=int, default=1)
+    p.add_argument("--config", type=str, default=known.config)
+    p.add_argument("--pid", type=int, default=c("pid", 1))
+    p.add_argument("--num-targets", type=int, default=c("num_targets", 10))
+    p.add_argument("--distance", type=float, default=c("distance", 300))
+    p.add_argument("--target-radius", type=float,
+                   default=c("target_radius", 25))
+    p.add_argument("--trials", type=int, default=c("trials", 1))
     return p.parse_args()
 
 

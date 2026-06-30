@@ -1,0 +1,8 @@
+{
+  "pid": 1,
+  "num_targets": 10,
+  "distance": 300,
+  "target_radius": 50,
+  "trials": 3,
+  "data_dir": "data"
+}
