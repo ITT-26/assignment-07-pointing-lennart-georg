@@ -11,16 +11,25 @@ from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 from pynput.mouse import Button, Controller
 from pynput import keyboard
+import argparse
+
 
 # for getting the screen size
 ctypes.windll.user32.SetProcessDPIAware()
 
-# camera id (set to 0 if no parameter is given)
-VIDEO_ID = int(sys.argv[1]) if len(sys.argv) > 1 else 0
+
+# arguments: what camera, debug window
+parser = argparse.ArgumentParser()
+parser.add_argument("--camera", "-c", type=int, default=0)
+parser.add_argument("--debug", "-d", action="store_true", default=False)
+args = parser.parse_args()
+
+VIDEO_ID = args.camera
+DEBUG = args.debug
+
 # number of hands to detect -> 1 because we only have one mouse
 NUM_HANDS = 1
 
-DEBUG = True if len(sys.argv) > 2 and sys.argv[2] == "debug" else False
 MODEL_PATH = "./mediapipe_sample_code/hand_landmarker.task"
 
 OPTIONS = vision.HandLandmarkerOptions(
