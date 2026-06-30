@@ -1,7 +1,6 @@
 # here goes your mediapipe-to-pointer implementation
 # beginning is close to mediapipe_hands.py
 
-import sys
 import cv2
 import time
 import math

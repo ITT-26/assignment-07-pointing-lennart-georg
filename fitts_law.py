@@ -4,20 +4,28 @@ import random
 import pyglet
 from pyglet import shapes
 from pyglet.window import key
+import csv
+import os
+import time
 
 
 # Arguments
 def parse_args():
     p = argparse.ArgumentParser()
+    p.add_argument("--pid", type=int, default=7)
     p.add_argument("--num-targets", type=int, default=10)
     p.add_argument("--distance", type=float, default=300.0)
     p.add_argument("--target-radius", type=float, default=25.0)
+    p.add_argument("--trials", type=int, default=1)
     return p.parse_args()
 
 
 # Window size
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 800
+
+# data directory
+DATA_DIR = "data"
 
 
 # check if point is in circle
@@ -41,6 +49,36 @@ def build_targets(center_x, center_y, distance, num_targets):
 # get arguments
 args = parse_args()
 
+# filename
+filename = f"fitts_{args.num_targets}_{int(args.target_radius*2)}_{int(args.distance)}_{args.pid}.csv"
+csv_path = os.path.join(DATA_DIR, filename)
+
+# file
+csv_file = open(csv_path, "a", newline="")
+csv_writer = csv.writer(csv_file)
+
+# make first row if the file is empty
+if os.path.getsize(csv_path) == 0:
+    csv_writer.writerow([
+        "iteration", "pid", "num_targets", "target_w", "target_d", "target_id", "timestamp"
+    ])
+    csv_file.flush()
+
+
+# function to log a hit
+def log_hit(target_id):
+    csv_writer.writerow([
+        current_trial,
+        args.pid,
+        NUM_TARGETS,
+        int(2 * TARGET_R),
+        int(DISTANCE_TO_TARGET),
+        target_id,
+        int(time.time() * 1000),
+    ])
+    csv_file.flush()
+
+
 # start point in the middle
 START_X = WINDOW_WIDTH // 2
 START_Y = WINDOW_HEIGHT // 2
@@ -51,6 +89,10 @@ START_R = 45
 TARGET_R = args.target_radius
 DISTANCE_TO_TARGET = args.distance
 NUM_TARGETS = args.num_targets
+
+# trials
+TOTAL_TRIALS = args.trials
+current_trial = 1
 
 # make window
 window = pyglet.window.Window(WINDOW_WIDTH, WINDOW_HEIGHT, "Fitts Test")
@@ -75,10 +117,24 @@ finished = False
 # make targets
 targets = build_targets(START_X, START_Y, DISTANCE_TO_TARGET, NUM_TARGETS)
 
-# random order of targets
-order = list(range(NUM_TARGETS))
-random.shuffle(order)
+
+# reset for next trial
+def reset_trial():
+    global order, order_pos, state
+
+    # random order
+    order = list(range(NUM_TARGETS))
+    random.shuffle(order)
+    order_pos = 0
+
+    # update state
+    state = "WAIT"
+
+
+# random order for the trial
+order = []
 order_pos = 0
+reset_trial()
 
 
 # update mouse position
@@ -106,7 +162,7 @@ def update(dt):
 # mouse click event
 @window.event
 def on_mouse_press(x, y, button, modifiers):
-    global state, finished, order_pos
+    global state, finished, order_pos, current_trial
 
     # start after clicking in the start circle
     if state == "WAIT":
@@ -117,17 +173,29 @@ def on_mouse_press(x, y, button, modifiers):
     # if the test is running
     if state == "PLAY":
         # current target
-        current_idx = order[order_pos]
-        tx, ty = targets[current_idx]
+        current_target_id = order[order_pos]
+        tx, ty = targets[current_target_id]
 
         # check if the click is inside the target
         if inside_circle(x, y, tx, ty, TARGET_R):
+            # log hit
+            log_hit(current_target_id)
             # next target
             order_pos += 1
             # done if all targets are hit
             if order_pos >= len(order):
-                finished = True
-                state = "DONE"
+                # reset for next trial if there are more trials, else finish
+                if current_trial < TOTAL_TRIALS:
+                    current_trial += 1
+                    reset_trial()
+                else:
+                    finished = True
+                    state = "DONE"
+
+
+@window.event
+def on_close():
+    csv_file.close()
 
 
 @window.event
@@ -163,9 +231,9 @@ def on_draw():
 
     # text for the current state
     if state == "WAIT":
-        msg = "Click the blue circle to start"
+        msg = f"Trial {current_trial}/{TOTAL_TRIALS} | Target {order_pos + 1}/{len(order)}"
     elif state == "PLAY":
-        msg = f"Target {order_pos + 1}/{len(order)}"
+        msg = f"Trial {current_trial}/{TOTAL_TRIALS}: Click the blue circle to start"
     else:
         msg = "Done! Press ESC to exit"
 
