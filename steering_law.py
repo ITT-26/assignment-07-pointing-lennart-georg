@@ -1,9 +1,3 @@
-# here goes your Steering Law application
-# based on the Fitts Law application, but with a path instead of targets
-
-import pyglet
-from pyglet import shapes
-from pyglet.window import key
 import argparse
 import csv
 import os
@@ -48,19 +42,36 @@ def parse_args():
     p.add_argument("--path-length", type=int, default=c("path_length", 600))
     p.add_argument("--path-width", type=int, default=c("path_width", 100))
     p.add_argument("--trials", type=int, default=c("trials", 1))
+    p.add_argument("--condition", type=str, default=c("condition", "mouse"))
+    p.add_argument("--latency-ms", type=int, default=c("latency_ms", 0))
     return p.parse_args()
 
 
 # arguments
 args = parse_args()
 
+# import pyglet after parsing so --help works without opening a display
+import pyglet
+pyglet.options["dpi_scaling"] = "stretch"
+from pyglet import shapes
+from pyglet.window import key
+
+# latency in milliseconds
+LATENCY_MS = max(0, args.latency_ms)
+
+# condition name for logging and file names
+CONDITION = args.condition.strip().replace(" ", "_")
+if not CONDITION:
+    CONDITION = "mouse"
+
 # data directory
 DATA_DIR = "data"
 
 # filename for the CSV file
-filename = f"steering_{args.path_length}_{args.path_width}_{args.pid}.csv"
+filename = f"steering_{args.path_length}_{args.path_width}_{CONDITION}_{LATENCY_MS}_{args.pid}.csv"
 
 # csv path
+os.makedirs(DATA_DIR, exist_ok=True)
 csv_path = os.path.join(DATA_DIR, filename)
 
 # file and writer
@@ -75,6 +86,8 @@ if os.path.getsize(csv_path) == 0:
         "pid",
         "path_length",
         "path_width",
+        "condition",
+        "latency_ms",
         "error_count",
         "t_start_ms",
         "t_end_ms",
@@ -112,9 +125,16 @@ goal_x, goal_y = path_x1, path_y
 
 state = "WAIT"
 
-# cursor position
+# raw mouse position
+mouse_x = WIDTH / 2
+mouse_y = HEIGHT / 2
+
+# delayed cursor position
 cursor_x = WIDTH / 2
 cursor_y = HEIGHT / 2
+
+# raw mouse history for latency
+mouse_history = []
 
 # error count
 errors = 0
@@ -153,16 +173,27 @@ def inside_path(x, y):
 # update mouse position
 @window.event
 def on_mouse_motion(x, y, dx, dy):
-    global cursor_x, cursor_y
-    cursor_x, cursor_y = x, y
+    global mouse_x, mouse_y
+    mouse_x, mouse_y = x, y
+
+
+# update mouse position while dragging
+@window.event
+def on_mouse_drag(x, y, dx, dy, buttons, modifiers):
+    global mouse_x, mouse_y
+    mouse_x, mouse_y = x, y
 
 
 # mouse press
 @window.event
 def on_mouse_press(x, y, button, modifiers):
     global state, errors, was_outside, start_time
+
+    click_x = cursor_x
+    click_y = cursor_y
+
     # start the test if the cursor is inside the start circle
-    if state == "WAIT" and inside_circle(x, y, start_x, start_y, START_R):
+    if state == "WAIT" and inside_circle(click_x, click_y, start_x, start_y, START_R):
         state = "PLAY"
         errors = 0
         was_outside = False
@@ -180,6 +211,8 @@ def log_trial():
         args.pid,
         PATH_LENGTH,
         PATH_WIDTH,
+        CONDITION,
+        LATENCY_MS,
         errors,
         start_time,
         t_end_ms,
@@ -195,16 +228,48 @@ def on_key_press(symbol, modifiers):
         window.close()
 
 
+def update_cursor_position():
+    global cursor_x, cursor_y
+
+    now = int(time.time() * 1000)
+    mouse_history.append((now, mouse_x, mouse_y))
+
+    # keep only the small part of history needed for the latency setting
+    cutoff = now - LATENCY_MS - 1000
+    while len(mouse_history) > 1 and mouse_history[1][0] < cutoff:
+        mouse_history.pop(0)
+
+    # no latency -> normal mouse position
+    if LATENCY_MS == 0:
+        cursor_x = mouse_x
+        cursor_y = mouse_y
+        return
+
+    target_time = now - LATENCY_MS
+    delayed = mouse_history[0]
+    for item in mouse_history:
+        if item[0] <= target_time:
+            delayed = item
+        else:
+            break
+
+    cursor_x = delayed[1]
+    cursor_y = delayed[2]
+
+
 # update function for the loop
 def update(dt):
     global state, errors, was_outside, current_trial
+
+    update_cursor_position()
 
     # do nothing if the test is not running
     if state != "PLAY":
         return
 
-    # check if the cursor is inside the path
-    in_path = inside_path(cursor_x, cursor_y)
+    # start circle also counts as valid path area
+    in_path = inside_path(cursor_x, cursor_y) or inside_circle(
+        cursor_x, cursor_y, start_x, start_y, START_R)
     if not in_path:
         # check if the cursor was already outside the path
         if not was_outside:
