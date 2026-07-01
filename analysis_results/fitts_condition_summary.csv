@@ -1,0 +1,5 @@
+condition,label,n,mean_duration_ms,sd_duration_ms
+mouse,Mouse,810,971.55,277.57
+touchpad,Touchpad,810,980.71,242.83
+mouse_latency,Mouse + 150 ms,810,1464.37,596.45
+air_mouse,Pose pointer,810,3093.39,2466.75

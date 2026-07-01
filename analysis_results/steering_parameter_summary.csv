@@ -1,0 +1,37 @@
+condition,label,path_width,path_length,difficulty_id,n,mean_duration_ms,sd_duration_ms,mean_error_count
+air_mouse,Pose pointer,60,250,4.167,9,1123.44,450.62,0.67
+air_mouse,Pose pointer,60,400,6.667,9,1442.89,343.25,0.33
+air_mouse,Pose pointer,60,550,9.167,9,1805.11,279.83,0.11
+air_mouse,Pose pointer,90,250,2.778,9,1006.11,215.01,0.11
+air_mouse,Pose pointer,90,400,4.444,9,1279.67,256.33,0.0
+air_mouse,Pose pointer,90,550,6.111,9,1818.89,377.67,0.44
+air_mouse,Pose pointer,120,250,2.083,9,1026.78,239.32,0.0
+air_mouse,Pose pointer,120,400,3.333,9,1171.22,146.02,0.11
+air_mouse,Pose pointer,120,550,4.583,9,1462.44,192.03,0.22
+mouse,Mouse,60,250,4.167,9,548.22,236.04,0.0
+mouse,Mouse,60,400,6.667,9,527.11,298.73,0.11
+mouse,Mouse,60,550,9.167,9,577.89,405.93,0.33
+mouse,Mouse,90,250,2.778,9,407.33,151.26,0.33
+mouse,Mouse,90,400,4.444,9,421.44,274.82,0.11
+mouse,Mouse,90,550,6.111,9,735.67,615.24,0.33
+mouse,Mouse,120,250,2.083,9,425.0,167.81,0.22
+mouse,Mouse,120,400,3.333,9,604.67,426.99,0.44
+mouse,Mouse,120,550,4.583,9,685.11,294.8,0.33
+mouse_latency,Mouse + 150 ms,60,250,4.167,9,747.33,279.13,0.44
+mouse_latency,Mouse + 150 ms,60,400,6.667,9,927.56,386.85,0.22
+mouse_latency,Mouse + 150 ms,60,550,9.167,9,1133.56,602.95,0.22
+mouse_latency,Mouse + 150 ms,90,250,2.778,9,741.33,219.78,0.22
+mouse_latency,Mouse + 150 ms,90,400,4.444,9,1147.22,539.9,0.33
+mouse_latency,Mouse + 150 ms,90,550,6.111,9,1007.56,232.73,0.22
+mouse_latency,Mouse + 150 ms,120,250,2.083,9,707.44,234.48,0.0
+mouse_latency,Mouse + 150 ms,120,400,3.333,9,852.89,281.52,0.11
+mouse_latency,Mouse + 150 ms,120,550,4.583,9,966.44,223.29,0.11
+touchpad,Touchpad,60,250,4.167,9,463.67,245.88,0.11
+touchpad,Touchpad,60,400,6.667,9,683.78,460.06,0.22
+touchpad,Touchpad,60,550,9.167,9,763.78,452.32,0.33
+touchpad,Touchpad,90,250,2.778,9,425.33,207.86,0.22
+touchpad,Touchpad,90,400,4.444,9,554.67,215.76,0.33
+touchpad,Touchpad,90,550,6.111,9,592.56,265.83,0.11
+touchpad,Touchpad,120,250,2.083,9,862.44,1384.28,0.56
+touchpad,Touchpad,120,400,3.333,9,645.44,206.76,0.11
+touchpad,Touchpad,120,550,4.583,9,565.67,238.07,0.11
