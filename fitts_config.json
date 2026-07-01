@@ -3,5 +3,7 @@
   "num_targets": 10,
   "distance": 300,
   "target_radius": 50,
-  "trials": 3
+  "trials": 3,
+  "condition": "mouse",
+  "latency_ms": 0
 }
