@@ -1,0 +1,4 @@
+iteration,pid,path_length,path_width,condition,latency_ms,error_count,t_start_ms,t_end_ms,duration_ms
+1,3,550,90,mouse_latency,150,0,1782856720273,1782856721267,994
+2,3,550,90,mouse_latency,150,0,1782856722567,1782856723461,894
+3,3,550,90,mouse_latency,150,0,1782856724654,1782856725656,1002

@@ -1,0 +1,4 @@
+iteration,pid,path_length,path_width,condition,latency_ms,error_count,t_start_ms,t_end_ms,duration_ms
+1,2,550,120,touchpad,0,0,1782867685802,1782867686013,211
+2,2,550,120,touchpad,0,0,1782867687282,1782867687495,213
+3,2,550,120,touchpad,0,0,1782867689372,1782867689894,522
