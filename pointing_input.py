@@ -1,20 +1,9 @@
-# here goes your mediapipe-to-pointer implementation
-# beginning is close to mediapipe_hands.py
-
-import cv2
-import time
-import math
-import ctypes
-import mediapipe as mp
-from mediapipe.tasks import python
-from mediapipe.tasks.python import vision
-from pynput.mouse import Button, Controller
-from pynput import keyboard
 import argparse
-
-
-# for getting the screen size
-ctypes.windll.user32.SetProcessDPIAware()
+import ctypes
+import math
+import os
+import tempfile
+import time
 
 
 # arguments: what camera, debug window
@@ -23,10 +12,42 @@ parser.add_argument("--camera", "-c", type=int, default=0)
 parser.add_argument("--debug", "-d", action="store_true", default=False)
 args = parser.parse_args()
 
+
+# get the screen size on Windows, macOS, or Linux
+def get_screen_size():
+    if hasattr(ctypes, "windll"):
+        try:
+            ctypes.windll.user32.SetProcessDPIAware()
+            user32 = ctypes.windll.user32
+            return user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
+        except Exception:
+            pass
+
+    try:
+        import tkinter as tk
+        root = tk.Tk()
+        root.withdraw()
+        width = root.winfo_screenwidth()
+        height = root.winfo_screenheight()
+        root.destroy()
+        return width, height
+    except Exception:
+        return 1920, 1080
+
+
+# heavy imports come after argument parsing so --help stays fast
+os.environ.setdefault("MPLCONFIGDIR", os.path.join(tempfile.gettempdir(), "matplotlib"))
+import cv2
+import mediapipe as mp
+from mediapipe.tasks import python
+from mediapipe.tasks.python import vision
+from pynput.mouse import Button, Controller
+from pynput import keyboard
+
 VIDEO_ID = args.camera
 DEBUG = args.debug
 
-# number of hands to detect -> 1 because we only have one mouse
+# One tracked hand drives the pointer.
 NUM_HANDS = 1
 
 MODEL_PATH = "./mediapipe_sample_code/hand_landmarker.task"
@@ -42,6 +63,8 @@ OPTIONS = vision.HandLandmarkerOptions(
 detector = vision.HandLandmarker.create_from_options(OPTIONS)
 
 cap = cv2.VideoCapture(VIDEO_ID)
+if not cap.isOpened():
+    raise RuntimeError("Could not open camera")
 
 # mouse controller
 mouse = Controller()
@@ -53,7 +76,7 @@ exit_program = False
 # keyboard listener for exiting the program
 def on_press(key):
     global exit_program
-    if key == keyboard.Key.esc:
+    if key == keyboard.Key.f12:
         exit_program = True
 
 
@@ -62,9 +85,7 @@ listener = keyboard.Listener(on_press=on_press)
 listener.start()
 
 # screen dimensions
-user32 = ctypes.windll.user32
-screen_width = user32.GetSystemMetrics(0)
-screen_height = user32.GetSystemMetrics(1)
+screen_width, screen_height = get_screen_size()
 
 # is the left mouse button pressed
 left_click = False
@@ -74,7 +95,7 @@ smooth_x = 0.5
 smooth_y = 0.5
 alpha = 0.35  # lower -> smoother
 
-# Remapping for camera, I had problems reaching completely down -> to fix it lower y_max (other values should be adjusted similarly if there are problems)
+# Camera coordinates are remapped to use the screen area comfortably.
 x_min, x_max = 0.2, 0.8
 y_min, y_max = 0.2, 0.8
 
@@ -104,7 +125,6 @@ def is_index_extended(hand):
 
 
 # check if a finger is folded -> L-shape is used for input -> middle ring and pinky finger should be folded
-# TODO: maybe make a fist to close the program
 def is_finger_folded(hand, tip_idx, end_idx):
     # is the tip of the finger below the other landmark -> finger folded
     return hand[tip_idx].y > hand[end_idx].y
@@ -128,9 +148,13 @@ while True:
 
     # Capture a frame from the webcam
     ret, frame = cap.read()
+    if not ret or frame is None:
+        time.sleep(0.01)
+        continue
 
-    # convert to mediapipe image
-    mp_frame = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame)
+    # convert to Mediapipe's RGB image format
+    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    mp_frame = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame_rgb)
 
     # save current time for internal interpolation
     timestamp_ms = int(time.time() * 1000)
@@ -155,8 +179,6 @@ while True:
         hand = detection_result.hand_landmarks[0]
 
         # some landmarks for click detection
-        wrist = hand[0]
-        middle_mcp = hand[9]
         index_tip = hand[8]
 
         # check if the hand is in L-shape
@@ -173,7 +195,7 @@ while True:
         # if l-shaped hand
         if l_shaped:
 
-            # smoothing the pointer movement -> was way too shakey
+            # Smooth pointer movement.
             smooth_x = smooth_x + alpha * (x - smooth_x)
             smooth_y = smooth_y + alpha * (y - smooth_y)
 
@@ -195,21 +217,20 @@ while True:
         index_y = hand[8].y - hand[1].y
 
         # angle between thumb and index finger
-        angle = math.degrees(
-            math.acos(
-                (thumb_x * index_x + thumb_y * index_y)
-                / (math.hypot(thumb_x, thumb_y) * math.hypot(index_x, index_y))
-            )
-        )
+        denominator = math.hypot(thumb_x, thumb_y) * math.hypot(index_x, index_y)
+        if denominator > 0:
+            cosine = (thumb_x * index_x + thumb_y * index_y) / denominator
+            cosine = clamp(cosine, -1.0, 1.0)
+            angle = math.degrees(math.acos(cosine))
 
         # if l-shaped hand and angle small -> click
-        if l_shaped and (not left_click) and angle < ANGLE_CLICK_THRESHOLD:
+        if angle is not None and l_shaped and (not left_click) and angle < ANGLE_CLICK_THRESHOLD:
             mouse.press(Button.left)
             left_click = True
         # if left click
         elif left_click:
             # if not l-shaped or angle is too big -> release click
-            if not l_shaped or angle > ANGLE_RELEASE_THRESHOLD:
+            if not l_shaped or angle is None or angle > ANGLE_RELEASE_THRESHOLD:
                 mouse.release(Button.left)
                 left_click = False
 
@@ -237,7 +258,7 @@ while True:
     if DEBUG:
         cv2.imshow("pointing input", frame)
         key = cv2.waitKey(1) & 0xFF
-        if key == ord("q") or key == 27:
+        if key == ord("q"):
             break
 
     if exit_program:
@@ -248,5 +269,6 @@ if left_click:
     mouse.release(Button.left)
 
 # release the camera and close the window
+listener.stop()
 cap.release()
 cv2.destroyAllWindows()

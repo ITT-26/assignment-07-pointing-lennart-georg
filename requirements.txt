@@ -1,0 +1,5 @@
+pyglet
+opencv-python
+mediapipe
+pynput
+matplotlib
